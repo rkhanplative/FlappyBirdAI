@@ -16,7 +16,8 @@ class bird:
         self.face_original = pygame.image.load("bird.png").convert_alpha()
         self.face = pygame.image.load("bird.png").convert_alpha()
 
-
+        #Delcaring Distances from Pipe, which will be used by AI
+        self.distFromTop, self.distFromBottom = 0,0
     def jump(self):
         #Restraigthens Bird
         self.angle = 0
@@ -37,6 +38,10 @@ class bird:
         if self.angle > -90:
             self.angle += angle  
             self.face = pygame.transform.rotate(self.face_original, self.angle)
+    def setDists(self, pipe):
+        self.distFromTop = (float(pipe.bottomHeight)**2 + float(self.height)**2) ** 0.5
+        self.distFromBotttom = (float(pipe.topHeight)**2 + float(self.height+35.00)**2) ** 0.5
+#Pipe Class
 class pipe: 
     def __init__(self,screen,center):
         #loading pygame screen object
@@ -68,6 +73,7 @@ class pipe:
     def incX(self, x):
         #Move pipe x units to the left
         self.x += x
+#Game Class
 class game:
     def __init__(self): 
         #Setting Up Basic Pygame Requirements
@@ -105,6 +111,10 @@ class game:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE and self.flappy.alive:
                         self.flappy.jump()
+                        
+                        #Recalculating Distances to Pipes
+                        self.flappy.setDists(self.pipes[0])
+        
             #Blitting City Background
             self.screen.blit(self.back,(0,0))
 
@@ -136,6 +146,9 @@ class game:
             #Initialize Flappy's Gravity
             self.flappy.gravity()
 
+            #Recalculating Distances to Pipes
+            self.flappy.setDists(self.pipes[0])
+            
             #Gradually rotate bird as it falls
             self.flappy.rotate(-1.5)
 
@@ -149,8 +162,8 @@ class game:
             pygame.display.flip()
 
 #Initialize and Start Game         
-newGame = game();
-newGame.setup();
+newGame = game() 
+newGame.setup()
 
 #Output Text in Console, after conclusion of game
 print('Game Over: Flappy Died\n')
