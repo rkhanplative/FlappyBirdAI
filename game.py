@@ -84,7 +84,7 @@ class game:
         self.bottom = pygame.image.load("bottom.png").convert_alpha()
         self.back = pygame.image.load("background.jpg").convert()
     
-    def setup(self):  
+    def setup(self):     
         #Initialization of AnimCount, variable that is gradually incremented, and utlized in animation process
         animCount = 0
 
