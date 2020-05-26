@@ -7,7 +7,7 @@ import os
 import pickle
 import time
 
-#Bird Class
+#bird Class
 class bird:
     def __init__(self, screen):
         self.screen = screen
@@ -46,7 +46,7 @@ class bird:
     def setDists(self, pipe):
         self.distFromTop = ((float(pipe.bottomHeight)-float(self.height))**2 + (float(pipe.x)-float(80))**2) ** 0.5
         self.distFromBotttom = ((float(pipe.topHeight)-float(self.height+35.0))**2 + (float(pipe.x)-float(80))**2) ** 0.5
-#Pipe Class
+#pipe Class
 class pipe: 
     def __init__(self,screen,center):
         #loading pygame screen object
@@ -78,7 +78,8 @@ class pipe:
     def incX(self, x):
         #Move pipe x units to the left
         self.x += x
-#Game Class
+
+#Main Function
 def main(playerType,genome=None,config=None): 
     #Setting Up Basic Pygame Requirements
     pygame.init() 
@@ -112,7 +113,7 @@ def main(playerType,genome=None,config=None):
     run = True
     
     #If the user plays, allow for 3 seconds prior to starting
-    time.sleep(2)
+    if playerType == 1: time.sleep(2)
     while run:
         animCount += 1
         for event in pygame.event.get():
@@ -120,14 +121,14 @@ def main(playerType,genome=None,config=None):
                 run = False
                 pygame.quit()
                 
-            #If Player presses space, the bird should jump
+            #If playerType is user, allow for space bar to make bird jump
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and playerType == 1:
                     Bird.jump()
             
-                
-        #Get Activation Values from Loaded Model
+        #If playerType is computer, use NEAT model to decide whether to jump
         if playerType == 2:
+            #Get Activation Values from Loaded Model
             out = net.activate((Bird.height,abs(pipes[0].topHeight-Bird.height),abs(pipes[0].bottomHeight-Bird.height),abs(110-pipes[0].x)))
             if out[0] > 0.5: Bird.jump()
             
@@ -193,6 +194,8 @@ if __name__ == '__main__':
     with open("winner.pkl","rb") as f:
         genome = pickle.load(f)
     
+    #Reshaping genome for neural network
     genome = [(1, genome)]
     
+    #Pass playerType, genome, and configuration files to main function
     main(int(input("There are two options...\n    1. You Control the Bird\n    2. The Computer Controls the Bird\n Which would you like: [1/2] ")),genome,config)
