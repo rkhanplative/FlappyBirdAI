@@ -5,7 +5,6 @@ import random
 import neat
 import os
 import pickle
-import time
 
 #Bird Class
 class bird:
@@ -79,18 +78,27 @@ class pipe:
         #Move pipe x units to the left
         self.x += x
 #Game Class
-def main(playerType,genome=None,config=None): 
+def main(genomes,config): 
     #Setting Up Basic Pygame Requirements
     pygame.init() 
     pygame.font.init()
     screen = pygame.display.set_mode([480,735])
     clock = pygame.time.Clock()
-
     #Setting up variables for NEAT implementation
-    _, g = genome[0]
-    net = neat.nn.FeedForwardNetwork.create(g, config)
-    Bird = bird(screen)
-    
+    nets = []
+    birds = []
+    ge = []
+
+    #Filling NEAT variables
+    for _, g in genomes:
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        nets.append(net)
+        birds.append(bird(screen))
+        g.fitness = 0
+        ge.append(g)
+
+
+        
     #Initializing Bird, Pipes, and Player Lebel
     pipes = []
     level = 0
@@ -102,34 +110,38 @@ def main(playerType,genome=None,config=None):
     #Initialization of AnimCount, variable that is gradually incremented, and utlized in animation process
     animCount = 0
 
-    #Adding First Pipe
+        #Adding First Pipe
     pipes.append(pipe(screen,random.randint(100,483)))
 
-    #Setting Up Score Level Text
+        #Setting Up Score Level Text
     font = pygame.font.Font('freesansbold.ttf', 32)
     text = font.render('Level 0',False,(255,255,255))
 
     run = True
-    
-    #If the user plays, allow for 3 seconds prior to starting
-    time.sleep(2)
     while run:
         animCount += 1
+        clock.tick(50)
+        if len(birds) < 1: run = False
+
+        for x, b in enumerate(birds):
+            ge[x].fitness += 0.1
+            
         for event in pygame.event.get():
             if event.type == QUIT:
                 run = False
                 pygame.quit()
+                #If Player presses space, the bird should jump
+                '''if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE and flappy.alive:
+                        flappy.jump()
+                        
+                        #Recalculating Distances to Pipes
+                        flappy.setDists(pipes[0])
+                '''
                 
-            #If Player presses space, the bird should jump
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and playerType == 1:
-                    Bird.jump()
-            
-                
-        #Get Activation Values from Loaded Model
-        if playerType == 2:
-            out = net.activate((Bird.height,abs(pipes[0].topHeight-Bird.height),abs(pipes[0].bottomHeight-Bird.height),abs(110-pipes[0].x)))
-            if out[0] > 0.5: Bird.jump()
+        for x, b in enumerate(birds):
+            out = nets[x].activate((b.height,abs(pipes[0].topHeight-b.height),abs(pipes[0].bottomHeight-b.height),abs(110-pipes[0].x)))
+            if out[0] > 0.5: b.jump()
             
         #Blitting City Background
         screen.blit(back,(0,0))
@@ -152,24 +164,33 @@ def main(playerType,genome=None,config=None):
         if pipes[0].x < -10: 
             pipes.pop(0)
             level += 1
+            for g in ge:
+                g.fitness += 1.5
             text = font.render('Level '+str(level),False,(255,255,255))
         
         #If bird collides with pipe, declare it to be dead
         #***reminder, 110 is the center x value of the bird at all times
             
-        if 100 in range(int(pipes[0].x),int(pipes[0].x)+70) and (Bird.height in range  (0,pipes[0].topHeight-25) or Bird.height+50 in range(pipes[0].bottomHeight,593)):
-            break;
-        elif Bird.height >= 550 or Bird.height <= 0:
-            break;
+        for x, b in enumerate(birds):
+            if 110 in range(int(pipes[0].x),int(pipes[0].x)+70) and (b.height in range  (0,pipes[0].topHeight) or b.height+50 in range(pipes[0].bottomHeight,593)):
+                ge[birds.index(b)].fitness -= 1
+                nets.pop(birds.index(b))
+                ge.pop(birds.index(b))
+                birds.pop(birds.index(b))
+            if b.height >= 550 or b.height <= 0:
+                ge[birds.index(b)].fitness -= 1
+                nets.pop(birds.index(b))
+                ge.pop(birds.index(b))
+                birds.pop(birds.index(b))
         
-        #Initialize Flappy's Gravity
-        Bird.gravity()
+            #Initialize Flappy's Gravity
+            b.gravity()
 
-        #Gradually rotate bird as it falls
-        Bird.rotate(-1.5)
+            #Gradually rotate bird as it falls
+            b.rotate(-1.5)
 
-        #Show Bird to Screen
-        Bird.showBird()
+            #Show Bird to Screen
+            b.showBird()
 
         #Show Level Text to screen
         screen.blit(text,(20,20))
@@ -178,21 +199,35 @@ def main(playerType,genome=None,config=None):
         pygame.display.flip()
 
 
-    
+def run(config_file):
+
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_file)
+
+    # Create the population, which is the top-level object for a NEAT run.
+    p = neat.Population(config)
+
+    # Add a stdout reporter to show progress in the terminal.
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+    p.add_reporter(neat.Checkpointer(5))
+
+    # Run for up to 50 generations.
+    winner = p.run(main, 10)
+    with open("winner.pkl", "wb") as f:
+        pickle.dump(winner, f)
+        f.close()
+
+    # show final stats
+    print('\nBest genome:\n{!s}'.format(winner))
+
 
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation is
     # here so that the script will run successfully regardless of the
     # current working directory.
     local_dir = os.path.dirname(__file__)
-    config_file = os.path.join(local_dir, 'config-feedforward.txt')
-    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_file)
-    #Replay succesful genome
-    with open("winner.pkl","rb") as f:
-        genome = pickle.load(f)
-    
-    genome = [(1, genome)]
-    
-    main(int(input("There are two options...\n    1. You Control the Bird\n    2. The Computer Controls the Bird\n Which would you like: [1/2] ")),genome,config)
+    config_path = os.path.join(local_dir, 'config-feedforward.txt')
+    run(config_path)
