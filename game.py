@@ -14,7 +14,7 @@ class bird:
 
         #Bird Starting State
         self.height = 100
-        self.angle = 0 
+        self.angle = 0
         self.alive = True
 
         #Declaration of original bird image, saved for reusing when rotating
@@ -34,31 +34,31 @@ class bird:
     def gravity(self):
         #If Bird heigth is above ground, lower bird height closer to ground by 5 pixels
         if self.height <= 550:
-            self.height += 5    
+            self.height += 5
         #If Bird Hits Ground, declare it dead
         if self.height >= 550:
             self.alive = False
     def rotate(self,angle):
         #While Bird is not at a -90 degree angle, decrement it by the inputted angle
         if self.angle > -90:
-            self.angle += angle  
+            self.angle += angle
             self.face = pygame.transform.rotate(self.face_original, self.angle)
     def setDists(self, pipe):
         self.distFromTop = ((float(pipe.bottomHeight)-float(self.height))**2 + (float(pipe.x)-float(80))**2) ** 0.5
         self.distFromBotttom = ((float(pipe.topHeight)-float(self.height+35.0))**2 + (float(pipe.x)-float(80))**2) ** 0.5
 #pipe Class
-class pipe: 
+class pipe:
     def __init__(self,screen,center):
         #loading pygame screen object
         self.screen = screen
-         
+
         #loading original pipe image for manipulation
         self.img = pygame.image.load("pipe.png").convert_alpha()
-        
+
         #Setting of Bottom Pipe and Top Pipe Height, given center, using a gap of 180 pixels between the two pipes (90 from center both ways)
         self.bottomHeight = center + 90
         self.topHeight = center - 90
-        
+
         #Starting Pipe at Right Hand edge of Screen
         self.x = 480
 
@@ -70,7 +70,7 @@ class pipe:
         self.topPipe = pygame.transform.flip(self.img.subsurface((0,0,self.img.get_width(),self.topHeight)), False, True)
 
     def show(self):
-        #Showing Bottom Pipe 
+        #Showing Bottom Pipe
         self.screen.blit(self.bottomPipe,(self.x,self.bottomHeight))
 
         #Showing Top Pipe
@@ -80,18 +80,19 @@ class pipe:
         self.x += x
 
 #Main Function
-def main(playerType,genome=None,config=None): 
+def main(playerType,genome=None,config=None):
     #Setting Up Basic Pygame Requirements
-    pygame.init() 
+    pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode([480,735])
     clock = pygame.time.Clock()
+    pygame.display.set_caption("Flappy Bird")
 
     #Setting up variables for NEAT implementation
     _, g = genome[0]
     net = neat.nn.FeedForwardNetwork.create(g, config)
     Bird = bird(screen)
-    
+
     #Initializing Bird, Pipes, and Player Lebel
     pipes = []
     level = 0
@@ -99,7 +100,7 @@ def main(playerType,genome=None,config=None):
     #Loading In Background Elements
     bottom = pygame.image.load("bottom.png").convert_alpha()
     back = pygame.image.load("background.jpg").convert()
-        
+
     #Initialization of AnimCount, variable that is gradually incremented, and utlized in animation process
     animCount = 0
 
@@ -111,7 +112,7 @@ def main(playerType,genome=None,config=None):
     text = font.render('Level 0',False,(255,255,255))
 
     run = True
-    
+
     #If the user plays, allow for 3 seconds prior to starting
     if playerType == 1: time.sleep(2)
     while run:
@@ -120,18 +121,18 @@ def main(playerType,genome=None,config=None):
             if event.type == QUIT:
                 run = False
                 pygame.quit()
-                
+
             #If playerType is user, allow for space bar to make bird jump
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and playerType == 1:
                     Bird.jump()
-            
+
         #If playerType is computer, use NEAT model to decide whether to jump
         if playerType == 2:
             #Get Activation Values from Loaded Model
             out = net.activate((Bird.height,abs(pipes[0].topHeight-Bird.height),abs(pipes[0].bottomHeight-Bird.height),abs(110-pipes[0].x)))
             if out[0] > 0.5: Bird.jump()
-            
+
         #Blitting City Background
         screen.blit(back,(0,0))
 
@@ -143,26 +144,26 @@ def main(playerType,genome=None,config=None):
         for element in pipes:
             element.incX(-2.5)
             element.show()
-            
+
         #If a pipe has passed the middle point, append a new pipe to pipes list
         if pipes[0].x == 190:
             pipes.append(pipe(screen,random.randint(150,410)))
-        
+
         if level > 100: break
         #If a pipe has passed the screen, remove it from pipe list, and increase player level by 1, and update level score text
-        if pipes[0].x < -10: 
+        if pipes[0].x < -10:
             pipes.pop(0)
             level += 1
             text = font.render('Level '+str(level),False,(255,255,255))
-        
+
         #If bird collides with pipe, declare it to be dead
         #***reminder, 110 is the center x value of the bird at all times
-            
+
         if 100 in range(int(pipes[0].x),int(pipes[0].x)+70) and (Bird.height in range  (0,pipes[0].topHeight-25) or Bird.height+50 in range(pipes[0].bottomHeight,593)):
             break;
         elif Bird.height >= 550 or Bird.height <= 0:
             break;
-        
+
         #Initialize Flappy's Gravity
         Bird.gravity()
 
@@ -179,7 +180,7 @@ def main(playerType,genome=None,config=None):
         pygame.display.flip()
 
 
-    
+
 
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation is
@@ -193,9 +194,9 @@ if __name__ == '__main__':
     #Replay succesful genome
     with open("winner.pkl","rb") as f:
         genome = pickle.load(f)
-    
+
     #Reshaping genome for neural network
     genome = [(1, genome)]
-    
+
     #Pass playerType, genome, and configuration files to main function
     main(int(input("There are two options...\n    1. You Control the Bird\n    2. The Computer Controls the Bird\n Which would you like: [1/2] ")),genome,config)
