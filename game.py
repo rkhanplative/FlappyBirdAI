@@ -121,6 +121,7 @@ def main(playerType,genome=None,config=None):
             if event.type == QUIT:
                 run = False
                 pygame.quit()
+                sys.exit()
 
             #If playerType is user, allow for space bar to make bird jump
             if event.type == pygame.KEYDOWN:
