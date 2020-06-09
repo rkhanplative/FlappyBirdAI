@@ -114,7 +114,7 @@ def main(playerType,genome=None,config=None):
     run = True
 
     #If the user plays, allow for 3 seconds prior to starting
-    if playerType == 1: time.sleep(2)
+    if playerType != 2: time.sleep(2)
     while run:
         animCount += 1
         for event in pygame.event.get():
@@ -125,7 +125,7 @@ def main(playerType,genome=None,config=None):
 
             #If playerType is user, allow for space bar to make bird jump
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and playerType == 1:
+                if event.key == pygame.K_SPACE and playerType != 2:
                     Bird.jump()
 
         #If playerType is computer, use NEAT model to decide whether to jump
